@@ -1,0 +1,164 @@
+  \subsection{Paragraph indices and identifiers}
+    \label{sub:para_ids}
+    \textit{Paragraph indices} track the updated position of each text \texttt{Paragraph} in the \texttt{Pad}, and are useful to know the absolute position of the line or lines that have been modified by each \texttt{Operation}. 
+    
+    This information can be used to determine if consecutive \texttt{Operations} modify the same lines of the text, but a \texttt{Paragraph}'s index does not necessarily identify the same \texttt{Paragraph} at different points in time. It is interesting to keep track of how \texttt{Paragraphs} are split or merged, how the meaning of a \texttt{Paragraph} changes or where are the new \texttt{Paragraphs} introduced - for this, we introduce \textit{Paragraph identifiers (IDs)}.
+    
+    \subsubsection{Paragraph indices}
+      \textit{Paragraph indices} are assigned to \texttt{ElementaryOperations} to keep track of the modified \textit{lines}' position in the text. With \textit{line} we refer to a text \texttt{Paragraphs}, as some \texttt{Paragraphs} only contain a new line and are not taken into account when computing paragraph indices.
+      
+      The position of a line is computed as the position of the text \texttt{Paragraph} in the \texttt{Pad} minus the number of newlines from the beginning until the position of the text \texttt{Paragraph}. Therefore, the paragraph index $i_p$ of a line that corresponds to the text \texttt{Paragraph} in position $p$ in the \texttt{Pad} would be computed as:
+      \begin{equation}\label{eq:paraindex}
+               i_p = p-\text{nl}(0,p-1)
+      \end{equation}
+      where nl$(p,q)$ is the number of \texttt{Paragraphs} in the \texttt{Pad} between positions $p$ and $q$ (both included) that are new line \texttt{Paragraphs}.
+      
+      Paragraph indices assigned to \texttt{ElementaryOperations} can give us an insight on whether the changes of an \texttt{Operation} are being done in the same part of the document as the previous or next \texttt{Operations}, or in a different part.
+      
+      Some questions that indices can give an answer to are: \textit{Is an author modifying one line of text or several ones? Are these lines close to each other? Are several authors working in the same  text area?}
+      
+      Paragraph indices are assigned with the object function \texttt{ElementaryOperation.assign}\_\texttt{para}, which is called by \texttt{Pad.create\_paragraphs\_from\_ops} while \texttt{Paragraphs} are created.
+      
+      When one or more \texttt{Paragraphs} are added or deleted entirely, the indices of other \texttt{Paragraphs} need to be updated. Ideally, when verifying if two consecutive \texttt{ElementaryOperations} EOperation1 and EOperation2 happen in the same part of the text we would compare EOperation1's indices (after updating the indices with EOperation1's changes) and EOperation2's indices (before updating the indices with EOperation2's changes). Therefore we need to distinguish between the indices before updating the \texttt{Paragraph} indices and the indices after updating the \texttt{Paragraph} indices.
+      
+      Moreover, some \texttt{ElementaryOperations} may modify several consecutive \texttt{Paragraphs}, so we define an \texttt{ElementaryOperation}'s paragraphs indices as two arrays of paragraphs indices (the first one for the paragraph indices \textbf{before} taking into account the \texttt{ElementaryOperation}'s changes, and the second one for the paragraph indices \textbf{after} taking into account the \texttt{ElementaryOperation}'s changes).
+      
+      For example, inserting a new text \texttt{Paragraph} in the beginning of the document shifts the index of all \texttt{Paragraphs} and index 0 would start being used by the newly inserted \texttt{Paragraph}. The indices assigned to the  \texttt{ElementaryOperation} that adds a new paragraph in the beginning of the text would be:
+      \begin{itemize}
+          \item \textbf{Before} changes: [0]\\
+          We will insert the text line in the beginning, that is, next to line 0 - if we insert it between two existing lines, this array will contain both lines' indices.
+          \item \textbf{After} changes: [0]\\
+          We just inserted paragraph 0.
+      \end{itemize}
+      
+      The rules applied to assign a Paragraph index to an \texttt{Elementary Operation} are shown in Table \ref{tab:eo_indices}. The definition of $i_p$ is the one from Equation \ref{eq:paraindex}. $N$ represents the position of the last \texttt{Paragraph} in the \texttt{Paragraph} array, which may be a new line or text depending on the case. $p$ is the position where we insert the new \texttt{Paragraph}.
+
+      \begin{table}[htp]
+        \caption{Paragraph indices assigned to an  \texttt{ElementaryOperation} - which always affects exactly one paragraph.}
+        \label{tab:eo_indices}
+        \centering
+        \resizebox{\columnwidth}{!}{%
+        \begin{tabular}{lrr}
+            \hline
+            \textbf{Elem. Operation} & \textbf{i before} & \textbf{i after} \\
+            \hline
+            \multicolumn{3}{l}{\textbf{Add text to existing text paragraph at \textit{p}}} \\
+            ($0\leq p\leq N$)  & [$i_p$]                & [$i_p$]   \\
+            \hline \multicolumn{3}{l}{\textbf{Add a new text paragraph at \textit{p}}} \\
+            Beginning ($p=i_p=0$)       & [0]                & [0]   \\
+            End ($p=N+1$)         & [$i_{N}$]         & [$i_{N+1}$]   \\
+            Middle ($0<p\leq N$) & [$i_p$, $i_p$+1] & [$i_p$+1]             \\
+            \hline \multicolumn{3}{l}{\textbf{Add a new new-line paragraph at \textit{p}}} \\
+            Beginning ($p=0$)       & [0]                & [0]   \\
+            End ($p=N+1$)         & [$i_{N}$]         & [$i_{N}$]   \\
+            Middle ($0<p\leq N$) & [$i_{p}$, $i_{p}$+1] & [$i_{p}$, $i_{p}$+1]\textbf{}             \\
+            \hline
+            \multicolumn{3}{l}{\textbf{Add new-line in existing text paragraph at \textit{p}}} \\
+            ($0\leq p\leq N$)  & [$i_p$]                & [$i_p$, $i_p$+1]   \\
+            \hline \multicolumn{3}{l}{\textbf{Delete paragraph at \textit{p}}}\\
+            Beginning ($p=i_p$=0)        & [0]               & [0]   \\
+            End ($i_p=i_{-1}$)  & [$i_{-1}$]   & [$i_{-1}$-1]   \\
+            Between $i_p$-1 and $i_p$+1     & [$i_p$]   & [$i_p$-1, $i_p$]             \\
+            \hline
+        \end{tabular}
+        }
+      \end{table}
+      
+      Since we are interested in knowing the paragraph indices for \texttt{Operations}, we compute them based on the paragraph indices that have been assigned to the \texttt{Operation}'s \texttt{ElementaryOperations}. The computation is carried out by the object function \texttt{Operation.get\_assigned\_para}, which receives two arguments: whether we are interested in the paragraphs before or after applying the changes and whether we want the first or the last paragraph involved.
+      
+    %   Variable \textbf{paragraph} refers to the \texttt{Operations}' Paragraph index that corresponds to picking the first paragraph modified and in the order in which they were before the modification.
+
+    \subsubsection{Paragraph IDs}
+        \label{subs:paraids}
+    Although it is not being used at the moment, it is interesting to keep track of how \texttt{Paragraphs} are modified, split or merged or where new \texttt{Paragraphs} are introduced. For this purpose we introduce \textit{Paragraph identifiers} (\textit{Paragraph IDs}).
+      
+    Paragraph \textit{IDs} are computed by looking at the \texttt{Pad}'s array of all \texttt{Paragraphs} - which contains the \texttt{Paragraphs} that have been deleted as well as the ones that currently exist. This way we make sure that IDs are unique.
+      
+     This functionality is implemented in the class function \texttt{Operation.compute\_para\_id}. This function receives as parameters: one or two existing IDs that will be used to compute the new ID (or IDs, in some cases) and the \textit{relation} between the new and the reference paragraphs.
+      
+      The possible values of \texttt{relation} are {initial}, {merge}, {split}, {insert\_before}, {insert\_after} and {insert\_between}. The value of the new ID or IDs based on the parameter \texttt{relation} are:
+      \begin{itemize}
+        \item \texttt{initial}: The first ID is always 0.
+        \item \texttt{insert\_before (id)}: Paragraph is inserted in the beginning of the text or when inserting a paragraph between two paragraphs if the second one has a shorter ID than the first one.\\
+        Examples:\\
+        \{0 $\rightarrow$ -1\}; 
+        \{-1 $\rightarrow$ -2\}; 
+        \{2 $\rightarrow$ 1\}; \\
+        \{1 $\rightarrow$ 0\}; 
+        \{0.A.B\_1\_3 $\rightarrow$ -1\}
+
+        \item \texttt{insert\_after (id)}: Paragraph is inserted in the end of the text or when inserting a paragraph between two paragraphs if the first one has a shorter ID than the second one. Examples:\\
+        \{-1 $\rightarrow$ -1\_0\};
+        \{0 $\rightarrow$ 0\_0\};
+        \{0\_2 $\rightarrow$ 0\_3\}
+        \item \texttt{merge (id1, id2)}: Lastly, we can obtain a new ID for a paragraph that results from merging two previously existing paragraphs. Examples:\\
+        \{0, 1 $\rightarrow$ (0+1)\};
+        \{0.A, 0.B $\rightarrow$ 0.A\};\\
+        \{0.C, 0.D $\rightarrow$ 0.C\};\\
+        \{0.A, 0.C $\rightarrow$ (0.A+0.C)\};\\
+        \{0.A.B, 0.A.C $\rightarrow$ 0.A.B\};\\
+        \{0.A, 0.B.C $\rightarrow$ (0.A+0.B.C)\}
+        \item \texttt{insert\_between (id1, id2)}: Paragraph is inserted between two paragraphs. It compares the lengths of both IDs and inserts the new one either before id2 or after id1. For example, the paragraph inserted between 0 and 1 is 0\_0.
+        \item \texttt{split (id1)}: If an existing paragraph is split into two, three IDs are generated from the original ID. For example, splitting paragraph 0 results in\\0.A (text), 0.B (new line) and 0.C (text).
+      \end{itemize}
+    
+    These IDs are called \textbf{Paragraph History}. However, for when we want to see if two users have contributed for the same paragraph or not, we can use the variable \textbf{Paragraph Original}. Paragraph Original is computed based on Paragraph History, but it considers paragraphs 0.A, 0.B, 0.C all as paragraph 0. Also, it would consider paragraph (0+1) as paragraph 0. We can increase the complexity, for example, paragraph history ((0.C+1).C+4) would become paragraph original number 0. 
+
+    One of the problems that we identified with this implementation of Paragraph IDs is that in some cases IDs become very long. For this reason, when the paragraph ID is longer than the maximum length specified in \texttt{config.py}, we generate a completely new ID - sort of \textit{restarting} the ID to a short length again. This solution is not very convenient, as the analysis becomes more difficult.
+    
+    A possible solution for this would be to come up with a way to track how many parts a paragraph has been split into. With the current implementation, if we decide to merge paragraphs 0.A and 0.B we cannot be sure if the result should be 0 (which would be the case if 0=(0.A+0.B), i.e. there are no paragraphs 0.C, etc), or if paragraph 0 was split into more than 2 parts and therefore (0.A+0.B) would only be a part of paragraph 0.
+    
+    Using SuperParagraph IDs (the concept of a SuperParagraph is introduced in the next section)  instead of Paragraph IDs would also reduce the length of the IDs used, but the implementation is a bit less straightforward. However, a simplified version has been implemented.
+
+  \subsection{{SuperParagraphs} and {Paragraphs}}
+    \label{sub:superparas}
+    In this version of the tool we introduce the concept of \texttt{SuperParagraph} that groups several \texttt{Paragraphs} if certain conditions are met. \texttt{SuperParagraphs} allows to keep track of the likely relationship that exists between lines of text that are only separated by one new line character.
+    
+    \texttt{SuperParagraphs} contain a boolean that states whether the \texttt{SuperParagraph} consists of only new lines or not, which could be understood (in a simplied way) as the result of doing the logical AND operation of the boolean that states whether each of the \texttt{SuperParagraph}'s \texttt{Paragraphs} are new lines. Hence, this boolean defined for \texttt{SuperParagraphs} determines the possible \texttt{Paragraphs} that it can contain. 
+    \begin{itemize}
+        \item New line \texttt{SuperParagraph}:\\
+        It may contain any number $N\geq 2$ of new line \texttt{Paragraphs}.\\
+        There cannot be two new line \texttt{SuperParagraphs} one after the other, as in that case they should be merged. Therefore, a new line \texttt{SuperParagraph} can only be surrounded by text \texttt{SuperParagraphs}.
+        \item Non-new line (\textit{text}) \texttt{SuperParagraph}:\\
+        It may contain any number of \texttt{Paragraphs}, either text or new line, as long as there are not two (or more) new line \texttt{Paragraphs} one after the other.\\
+        Analogously to the previous case, they can only be surrounded by new line \texttt{SuperParagraphs}.
+    \end{itemize}
+    
+    Object function \texttt{Pad.create\_paragraphs\_ from\_ops()}, which is the function that updates \texttt{Paragraphs}, is the one that updates \texttt{SuperParagraphs} as well.
+    
+      \begin{table}[htp]
+        \caption{Rules for updating \texttt{SuperParagraphs} after inserting or deleting a \texttt{Paragraph}. \textbf{NL} stands for \textit{New Line} and \textbf{T} stands for \textit{Text}.}
+        \label{tab:sup_paras}
+
+        \centering
+        \resizebox{\columnwidth}{!}{%
+        \begin{tabular}{lll}
+            \hline
+            \textbf{Para} & \textbf{SuperPara} & \textbf{Action} \\
+            \hline
+            Any & None & Insert in new T SuperPara \\
+            T & NL & Insert; Run Listing \ref{code:code2} \\
+            T & T & Insert\\
+            NL & NL & Insert \\
+            NL & T & Insert; Run Listing \ref{code:code1}\\
+            \hline
+        \end{tabular}
+        }
+      \end{table}
+    
+    The rules that determine how to update \texttt{SuperParagraphs} after inserting or deleting a \texttt{Paragraph} are shown in Table \ref{tab:sup_paras}. 
+
+    After inserting a text \texttt{Paragraph} in a new line \texttt{SuperParagraph} we also need to check which are the changes that we will need to do in the \texttt{SuperParagraph}, as described in Listing \ref{code:code2}.
+    \lstinputlisting[language=Python, caption=After inserting text Paragraph in new line Superparagraph., label=code:code2]{codes/Tpara.py}    
+
+    In a similar way, after inserting a new line \texttt{Paragraph} in a text \texttt{SuperParagraph} we need to check whether we will need to split the \texttt{SuperParagraph} or merge it with other \texttt{SuperParagraphs}, as described in Listing \ref{code:code1}.
+    \lstinputlisting[language=Python, caption=After inserting new line Paragraph in text Superparagraph., label=code:code1]{codes/NLpara.py}
+
+    \subsubsection{Discussion about SuperParagraphs: Issues and possible solutions}
+      Although using \texttt{SuperParagraphs} seems to work for the majority of the pads analyzed, there is still an inconsistency in the number of new line characters used to separate paragraphs. In some cases, both the separation between paragraphs and the separation between list elements is one new line character. This makes it difficult to apply the concept of \texttt{SuperParagraphs} - at least with the current implementation. These cases can be identified by a small number of \texttt{SuperParagraphs} and a very large average number of \texttt{Paragraphs} per \texttt{SuperParagraph}. A possible improvement for these cases would be to assume \texttt{SuperParagraphs} to be the same as the \texttt{Paragraphs}, unless there seems to be a list (which can be identified by having several short \texttt{Paragraphs} that often start with one of the characters that are typically used for lists).
+      
+      A correct paragraph separation was crucial at this point for carrying out a relevant semantic analysis comparison across paragraphs. For this reason, we have implemented the object function \texttt{Pad.get\_paragraphs\_text()} that first obtains the text split by double new lines and then compares the average paragraph length obtained with a configuration parameter that we considered appropriate for the texts we are analyzing (1000 characters, defined in the configuration file \texttt{config.py}). If the average length is longer than the one defined in the configuration file, we assume that the authors used single new line characters to separate their paragraphs and split the text by single new lines instead. In both cases we delete whitespace lines.
+      
+      Another issue that we came up with when dealing with \texttt{SuperParagraphs} is the fact that lines consisting only of whitespace are considered as text \texttt{Paragraphs}, and therefore we may end up grouping in a single \texttt{SuperParagraphs} lines of text that the authors intended to separate in different paragraphs. The solution to this is in the way \texttt{Paragraphs} are treated: whitespace \texttt{Paragraphs} behave like text \texttt{Paragraphs} when being updated, but should be considered like new line \texttt{Paragraphs} when grouped into \texttt{SuperParagraphs}. This is not completely straightforward, as a \texttt{SuperParagraph} containing a whitespace \texttt{Paragraph} may need to be split and recombined if non-whitespace characters are inserted in its whitespace \texttt{Paragraph}.
+      
+      Another of the issues we identified happens as a result of the behaviour of many text editors that automatically insert a new bullet point after inserting a new line character in a line with a bullet point. In many cases, authors leave this new bullet point entry empty - using it as if it were an empty line - but our program considers it as a line containing text.

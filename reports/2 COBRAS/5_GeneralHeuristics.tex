@@ -1,0 +1,100 @@
+    There have been many different approaches for analyzing Collaborative Writing (CW). Although most of the research has been traditionally done on the final result, there have been several approaches that focus their analysis on the process of writing. In particular, the WriteProc framework presented by V. Southavilay et al. in uses both process mining and semantic analysis \cite{southavilay2009writeproc}.
+    
+    Lowry et al. present in \cite{lowry2004building} a common nomenclature and taxonomy for CW works. They define the common iterative activities of CW, which are: brainstorming, outlining, drafting, reviewing, revising and editing. Several participants' roles are introduced by Lowry et al. in \cite{lowry2004building} as well, including writer, editor, scribe or facilitator. Depending on the task that students are working on, some of these activities and roles may not be relevant. In our case, it is very unlikely to find a student taking the role of scribe, as all interaction was done through the computer. Nevertheless, we would expect students to often take the roles of writer and editor. For a similar reason, we would not be able to find the reviewing activity either.
+    
+    In this section we will define different heuristics and measures that may help us identify different roles taken by students or different collaborative activities, that we might be able to relate to the ones proposed by Lowry et al. For example, as explored in \cite{sv2}, an increase in the number of lines together with a decrease in the length of such lines could suggest an outlining activity.
+    
+    There are many other specific questions that we may want to answer, such as which areas of text have been modified the most, if students have worked at the same time, or whether several students have contributed to the same parts of the document. The heuristics that were proposed in the previous version of our tool \cite{FROG-analytics} contained some information that could be relevant for some of these questions, but we can see that other researchers have been interested in this topic as well \cite{sv3}.
+
+\subsection{Pad heuristics}
+\label{sub:Pad_heuristics}
+    In the previous version of the tool \cite{FROG-analytics} the heuristics or metrics that are summarized in Table \ref{tab:pad_h} were defined in order to assess the quality of a \texttt{Pad}. From here on, we refer to this kind of heuristics as \textit{Pad heuristics} because they are computed taking into account the \texttt{Pad}'s \texttt{Operations}, as opposed to \textit{Operation heuristics} that will be introduced in the next section.
+    
+      \begin{table}[htp]
+        \caption{Pad heuristics. Column \textit{Window} indicates whether the scores can be computed ignoring Operations before a given timestamp.}
+        \label{tab:pad_h}
+        \centering
+        % \resizebox{\columnwidth}{!}{%
+        \begin{tabular}{lll}
+            \hline
+            \textbf{Heuristic name} & \textbf{Window} & \textbf{} \\
+            \hline
+            Alternating & No & \\
+            Day break & Yes & \\
+            Short break & Yes & \\
+            Overall type & Yes & \\
+            Proportion & No & \\
+            Synchronous & Yes & \\
+            User type & Yes & \\
+            User proportion per paragraph & No & \\
+            \hline
+        \end{tabular}
+        % }
+      \end{table}
+    We can compare the scores of a \texttt{Pad}'s heuristics at different points in time by getting versions of the \texttt{Pad} at the timestamps of interest, using the object function \texttt{Pad.pad\_at\_timestamp}. When calling function \texttt{run\_analytics.py} with argument \texttt{--generate\_csv\_summary} a tsv file is printed containing one line per \texttt{Pad} with the values of the previous and new \textit{Pad heuristics}. These Pad heuristics are computed by calling the object function \texttt{Pad.compute\_metrics}.
+ 
+    The metrics implemented in the previous version of the tool take into account all \texttt{Operations} within a \texttt{Pad}, from the first timestamp until the last one. However, these scores \textit{dilute} the impact of each \texttt{Operation} because, as the number of \texttt{Operations} in the \texttt{Pad} increases, the new \texttt{Operations} have a smaller impact on the scores.
+
+    To solve this issue, we can specify a starting timestamp so that \texttt{Operations} that take place before the specified time are not taken into account when computing the scores. This, together with the previously explained strategy of getting versions of the \texttt{Pad} that end at different timestamps, allows us to define time windows of interest. This can be applied to the scores that are computed from the \texttt{Pads}' \texttt{Operations}, but not to the ones computed from \texttt{Paragraphs} information. Table \ref{tab:pad_h} summarizes which scores can be computed for specific time windows.
+
+    We also defined some new heuristics that capture \texttt{Paragraphs} information in a different way. These new pad heuristics are summarized in Table \ref{tab:new_pad_h}.
+      \begin{table}[pth!]
+        \caption{New Pad heuristics (not normalized). Column \textit{Wnd} (Window) indicates whether they can be computed ignoring Operations before a given timestamp.}
+        \label{tab:new_pad_h}
+        \centering
+        \resizebox{\columnwidth}{!}{%
+        \begin{tabular}{lll}
+            \hline
+            \textbf{Heuristic name}&\textbf{Wnd} & \textbf{Details}\\
+            \hline
+            Length & No & Contribution\\
+            Length all & Yes & Contribution\\
+            Length all write & Yes  & Student effort \\
+             & & and contribution \\
+            Length all paste & Yes  & Contribution\\
+            Added chars &  Yes & Contribution\\
+            Deleted chars &  Yes &Contribution \\
+            Para avg length & No & Text structure\\
+            Superpara avg length & No & Text structure\\
+            Avg paras per superpara & No & Text structure\\
+            \hline
+        \end{tabular}
+        }
+      \end{table}
+    
+  \subsection{Operation heuristics}
+    \label{sub:operation_heuristics}
+    As mentioned previously,  \texttt{Operation} heuristics only take into account the context of the \texttt{Operation}. They are shown in Table \ref{tab:op_h}, together with other relevant information.
+
+      \begin{table}[pth!]
+        \caption{Operation information (heuristics not normalized).}
+        \label{tab:op_h}
+        \centering
+        \resizebox{\columnwidth}{!}{%
+        \begin{tabular}{ll}
+            \hline
+            \textbf{Information} & \textbf{Details} \\
+            \hline
+            Author & Name of the Operation author.\\
+            Position Start & First text position edited.\\
+            Position End & Last text position edited.\\
+            Time Start & Operation starting timestamp.\\
+            Time End & Operation ending timestamp.\\
+            Atomic Op Count & Number of atomic ops.\\
+            Type & Operation type.\\
+            Text Added & Number of chars. added.\\
+            Deletion Length & Number of chars. deleted.\\
+            Paragraph & Paragraph index.\\
+            Paragraph History & Paragraph ID, see \ref{subs:paraids}) \\
+            Paragraph Original & Simplified Para. ID, see \ref{subs:paraids}) \\
+            Superparagraph ID & Computed as in \ref{subs:paraids}. \\
+            Coauthor Number & Number of other authors \\
+            & in SuperParagraph.\\
+            Proportion Pad & Ratio of Operation chars\\
+            & to Total Pad chars.\\
+            Proportion Paragraph & Ratio of Operation chars\\
+            & to Paragraph chars. \\
+            \hline
+        \end{tabular}
+        }
+      \end{table}

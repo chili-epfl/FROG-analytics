@@ -1,0 +1,123 @@
+\documentclass[twocolumn, 12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[a4paper,
+            left=0.75in,right=0.75in,top=1.2in,bottom=1.2in,%
+            footskip=.25in]{geometry}
+\setlength{\columnsep}{20pt}
+\usepackage{float}
+\usepackage{nccmath}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\setlength {\marginparwidth }{2cm}
+%Includes "References" in the table of contents
+\usepackage[nottoc]{tocbibind}
+
+\providecommand{\keywords}[1]{\textbf{\textit{\\Keywords }} #1}
+\title{COBRAS: A tool for analyzing the collaborative writing process including semantic analysis}
+\author{
+    Montero Lucia\\
+    lucia.monterosanchis@epfl.ch
+    \and
+    Shengzao Lei\\
+    shengzao.lei@epfl.ch
+}
+\date{\today}
+
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{todonotes}
+\newcommand\lei[1]{\todo[inline, color=blue!30]{#1}}
+\newcommand\lucia[1]{\todo[inline, color=yellow!40]{#1}}
+\newcommand\anyone[1]{\todo[inline, color=orange!30]{#1}}
+
+\newcommand\newtodo[1]{\todo[inline]{#1}}
+\input{code_template}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  This report covers the work done during the semester projects of L. Montero and S. Lei under the supervision of S. Håklev at EPFL's CHILI lab.
+
+  This work is based on the tool developed by L. Baligand and A. Pace. The aim of the project is to improve the previous analysis tool by including semantic analysis on the text and by introducing new heuristics that allow for a more relevant analysis of collaboratively written documents.
+\end{abstract}
+
+\keywords{Collaborative writing, FROG, online editors}
+
+\section{Introduction}
+\input{1_Introduction}
+
+\section{Data}
+  \input{3_Data}
+
+\section{Architecture}
+  The tool presented in this report is written in Python3 and the architecture (Figure \ref{Architecture_new}) is based on the one implemented by L. Baligand and A. Pace \cite{swisstext,FROG-analytics} (Figure \ref{Architecture}). 
+
+  \texttt{ElementaryOperations}, \texttt{Operations} and \texttt{Paragraphs} have been kept the same as in the previous version of the tool:
+  \begin{itemize}
+    \item An \texttt{ElementaryOperation} represents a writing event and is defined by its position, timestamp, author and text to add or length to delete. It can be only be of type \texttt{add} or \texttt{del}.
+    
+    \item \texttt{Operations} consist of groupings of \texttt{ElementaryOperations}. They are classified in five different categories: write, delete, edit, paste or jump. \texttt{Operations} also have \textit{context information} that give more information about it. This context information is described in more detail in Section \ref{sub:operation_heuristics}.
+    
+    \item \texttt{Paragraphs} keep track of the lines in the text. Each \texttt{Paragraph} may represent either one line of text or one new line character. They are obtained by iterating over the \texttt{Pad}'s \texttt{ElementaryOperations} and identifying the line that they are modifying. The general idea is that inserting a new line character in the middle of an existing \texttt{Paragraph} results in three \texttt{Paragraphs}: the first part of the original one, a new line \texttt{Paragraph} and a third one representing the second part of the original \texttt{Paragraph}. This is explained in more detail in L. Balingand and A. Pace's report.
+  \end{itemize}
+  
+      \begin{figure}[bhtp!]
+        \centering
+        \includegraphics[width=0.5\textwidth]{figures/architecture.png}
+        \caption{Architecture of the previous system}
+        \label{Architecture}
+    \end{figure}
+    
+    \begin{figure}[bhtp!]
+        \centering
+        \includegraphics[width=0.5\textwidth]{figures/architecture-new.png}
+        \caption{New architecture after adding \texttt{WindowOperation} and \texttt{SuperParagraph}}
+        \label{Architecture_new}
+    \end{figure}
+  
+  \newpage
+  After reading the data, it is parsed to create \texttt{ElementaryOperations}. \texttt{ElementaryOperations} are grouped into \texttt{Operations}, which make up a \texttt{Pad}. \texttt{ElementaryOperations} are then used to deduce the \texttt{Paragraphs} of the document. Then, the heuristics are computed based on the Pads' paragraphs, operations and operations' context information.
+  
+  However, we realized that the majority of students use two new line characters (i.e. two new line characters written one after the other) to separate \textit{paragraphs}. In other cases students use  bullet points lists to synthesize information. Although a list's elements are separated by new lines, they should be considered part of one same structure - whereas different paragraphs should not. These observations lead us to introduce the concept of \texttt{SuperParagraphs}, which group several \texttt{Paragraphs}, keeping track of the fact that some \texttt{Paragraphs} are more related to some \texttt{Paragraphs} than to others. They are explained in Section \ref{sub:superparas}.
+
+  We also introduce the concept of \texttt{Paragraph} indices and identifiers, which are explained in Section \ref{sub:para_ids}.
+  
+  Although we can obtain complete words from \texttt{Operations}, they are too fine-grained to contain a complete meaning and cannot be used to carry out the Semantic Analysis. Instead, we group the \texttt{Operations} with the same author and that take place within a specific time interval into a \texttt{WindowOperation}. A \texttt{WindowOperations} is defined by its group number (the group it belongs to), its author, the list of Operations it is composed of, its time interval and its starting and ending timestamp. \texttt{WindowOperation} are explained in Section \ref{sub:winOp}.
+
+  \input{4_1_ParagraphIDs_SuperParagraphs}
+  \input{3_3WindowOperation.tex}
+    
+% \newpage
+\section{General Heuristics Computation}
+  \input{5_GeneralHeuristics}
+
+\section{Semantic Analysis}
+  \input{6_SemanticAnalysis.tex}
+
+\section{Results}
+We will select the best time interval based on the requirements for the Semantic Analysis and then we will keep the consistency by using the chosen value for the entire analysis.
+  \input{6_2semantic_result.tex}
+
+\section{Conclusion}
+\input{7_Conclusion.tex}
+
+\section{Future work}
+\input{8_Future_work.tex}
+
+% \section{File Structure}
+%   \lei{Explain the new added files (Lei)}
+%   \lucia{Update explaining run\_analysis etc (Lucia) *}
+
+
+% \section{Discussion}
+%   \todo[inline]{}
+
+% \section{Conclusion}
+%   \todo[inline]{}
+% \newpage
+% \clearpage
+\bibliographystyle{unsrt}
+\bibliography{refs}
+
+\end{document}

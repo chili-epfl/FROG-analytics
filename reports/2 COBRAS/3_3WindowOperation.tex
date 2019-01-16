@@ -1,0 +1,25 @@
+\subsection{WindowOperation}
+    \label{sub:winOp}
+    A \texttt{WindowOperation} is a group of \texttt{Operations} within a time interval that have the same author. We introduced \texttt{WindowOperations} because we would like to apply semantic analysis on what users' wrote and sometimes we can only obtain one or two words from \texttt{Operations},  not enough to constitute meaning. 
+    
+    \subsubsection{Build WindowOperation}
+    Function \texttt{Pad.BuildWindowOperation} creates the \texttt{WindowOperation}. It takes \texttt{time\_interval} (default 100 second) as a parameter, which needs to satisfy some conditions that we will explain later. The function traverses all \texttt{Operations} inside the pad and computes their group number, which is then used to assign each \texttt{Operation} to its corresponding group. Within each group,  \texttt{Operations} are sorted and split by author, resulting in  \texttt{WindowOperations}. The group number (num) can be computed as:
+        \begin{equation}\label{eq:group_number}
+            \text{num} = \lceil(\text{end\_time} - \text{start\_time})/t\rceil
+        \end{equation}
+      where $t$ is the time interval, end\_time is time when the \texttt{Operation} ends and start\_time is the starting time of the \texttt{Operation}'s Pad.
+
+      \subsubsection{Select time interval}
+      \label{sub:time_interval}
+      Function \texttt{BuildWindowOperation} uses parameter time\_interval, which has a great impact on applying semantic analysis. Too short time interval may lead to not having enough words that have a meaning, whereas too long time interval may result in not having enough points in time for analyzing of collaborative writing behavior in time.
+      
+      We first tried to choose the best time interval by counting the number of \texttt{Operations} or string length inside one \texttt{WindowOperation}, but we found that there are some \texttt{Operations} which only add a new line or punctuation. Since we would like to do semantic analysis to the \texttt{WindowOperation}'s text, we are interested in the \texttt{WindowOperation}'s meaningful text and these \texttt{Operations} should not be considered. Therefore, it makes sense to evaluate the best time interval by counting the number of words inside the \texttt{WindowOperation}. We consider a \texttt{WindowOperation} to be valid if it has enough words. A \texttt{Pad} is considered valid if the \texttt{Pad} has enough valid \texttt{WindowOperations}. Function \texttt{SelectTimeInterval} labels whether the  \texttt{Pad} is valid or not for a given list of time intervals to be considered. It also takes the threshold number of words needed for a valid \texttt{WindowOperation} and the threshold of the group number in a \texttt{Pad} as parameters. It returns, for each \texttt{Pad}, a list containing the 0 and 1 (valid) of \texttt{Pad} for each time interval.
+
+      \subsubsection{Fitting similarity distribution} Users' behavior is quite complex when they are writing together. However, we can simplify collaborative behavior by using some metrics to measure it and try to discover potential common patterns. After choosing a time interval and building the corresponding \texttt{WindowOperations}, we can recover the text (see Section \ref{sub:textRecovery} for more details) and apply a pre-trained model (Section \ref{sub:pretrained}) to compute the similarity (see Section \ref{sub:similarity}) between different authors' \texttt{WindowOperations} in the same group. From here on we will refer to the different authors' \texttt{WindowOperations} in the same group call as \texttt{WindowOperation} pair. After obtaining the sequence of similarity values for all \texttt{Pads} and for each authors pair, we can plot the similarity distribution and fit the similarity distribution, to find the pattern or the \textit{law of similarity}. We used linear fitting to fit similarity distribution, so that we can classify the collaborative behaviours in: 
+      \begin{itemize}
+          \item Writing converges towards the same topic gradually.
+          \item Writing topic diverges gradually.
+          \item No change in the writing topic similarity.
+      \end{itemize}
+      Function \texttt{PlotSimilarityDistribution} takes care of fitting similarity distribution.
+    
