@@ -1,9 +1,0 @@
-PV 31.10
-- Live feedback, dashboard
-- Write report current work
-	-description of paramters
-	
-- what would be interesting for a teacher
-- step back, fix code and clear implementations, optimizations
-- Which groups collaborate in what, how
-- clear readme, runnable code through command line
