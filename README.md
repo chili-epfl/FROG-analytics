@@ -33,6 +33,10 @@ pip install seaborn
 pip install sqlite3
 pip install flask
 pip install mysqlclient
+pip install scipy
+pip install -U nltk
+pip install -U spacy
+python -m spacy download en (for English model )
 ```
 
 ### Etherpad
@@ -122,7 +126,7 @@ Find a detailed tutorial on [MongoDB](http://api.mongodb.com/python/current/tuto
 
 ## Usage
 
-In its current state, the program groups the fine grained writing events (`ElementaryOperation`) provided by the editors into `Operations` (list of writing events by the same author in a short time lapse and at the same position). Then `Paragraphs` (collection of operations in the same line) and `SuperParagraphs` (collection of `Paragraphs` that are separated by at least two newline characters) are deduced. We can then fill in information about the `Operation`, such as the `Paragraph` index where it takes place.
+In its current state, the program groups the fine grained writing events (`ElementaryOperation`) provided by the editors into `Operations` (list of writing events by the same author in a short time lapse and at the same position). Then `Paragraphs` (collection of operations in the same line) and `SuperParagraphs` (collection of `Paragraphs` that are separated by at least two newline characters) are deduced. We can then fill in information about the `Operation`, such as the `Paragraph` index where it takes place. Also, `WindowOpertion` is group of operations that written by same author within fixed time interval. 
 
 The `Operation` information is the following:
 
@@ -190,6 +194,9 @@ Some of these measures can be computed over a time window, as shown in the follo
 | Paragraph average length         | No     |
 | Superparagraph average length    | No     |
 | Average paragraphs/superparagraph| No     |
+
+## Semantic Analysis
+COBRAS can apply semantic analysis based on `WindowOperation`, `Author`, `Superparagraph`, `Pad`.  First thing to do is creating `WindowOperation`, `Superparagraph` or groups of `Operations` for different `Authors`. Then using `get text(get text by XXX)` functions to create text for them. Our pretrained model is [Sent2vec](https://github.com/epfml/sent2vec) and you can download several pretrained models and see how preprocess raw text before applying pretrained model from the sent2vec github link.
 
 
 ### Command line execution
