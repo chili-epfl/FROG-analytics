@@ -149,6 +149,19 @@ The `Operation` information is the following:
 | Proportion Pad       | Ratio of Operation chars to Total Pad chars. |
 | Proportion Paragraph | Ratio of Operation chars to Paragraph chars. |
 
+And  `WindowOperation` information is the following:
+
+| Information          | Details                                      |
+|----------------------|----------------------------------------------|
+| Author               | Name of the WindowOperation author.          |             
+| Time Start           | WindowOperation starting timestamp.          |
+| Time End             | WindowOperation ending timestamp.            |
+| Group Number         | The group that window belongs to in one pad. |
+| Time Interval        | Time interval separate WindowOperations.     |
+| Text                 | The text added inside WindowOperation.       |
+| Text Vector          | The semantic vector of text.                 |
+| Operations           | List of Operations inside WindowOperation.   |
+
 
 After completing the information about the `Operations` we can then compute several metrics from the context of an operation:
 - Proportion score: how balanced are the contributions of the users in the whole document? (1 is very balanced, 0 unbalanced)
